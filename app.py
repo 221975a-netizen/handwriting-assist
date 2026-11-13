@@ -26,7 +26,6 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-    /* Main application background */
     .stApp {
         background-color: #FAF9F6;
         margin: 0;
@@ -39,13 +38,12 @@ st.markdown("""
         height: 0 !important;
     }
 
-    /* Hide menu and footer */
     #MainMenu,
     footer {
         display: none !important;
     }
 
-    /* Remove unwanted top spacing */
+    /* Remove top whitespace */
     [data-testid="stAppViewContainer"] {
         padding-top: 0 !important;
         margin-top: 0 !important;
@@ -123,11 +121,11 @@ if image_path.exists():
                 url("data:image/png;base64,{hero_image}");
 
             /*
-            Show the complete photograph without cropping.
-            The image may stretch slightly to fit the screen.
+            Preserve original image proportions.
+            Shift the image left to reveal more of the hand and pen.
             */
-            background-size: 100% 100%;
-            background-position: center center;
+            background-size: cover;
+            background-position: 70% center;
             background-repeat: no-repeat;
             background-color: #FAF7F2;
 
@@ -189,7 +187,7 @@ if image_path.exists():
                 min-height: 650px;
                 height: 100vh;
                 padding: 35px 7%;
-                background-position: center center;
+                background-position: 70% center;
             }}
 
             .hero-title {{
