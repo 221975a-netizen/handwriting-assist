@@ -7,10 +7,8 @@ from PIL import Image
 from functools import lru_cache
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-# Hugging Face repository containing your trained model
 MODEL_ID = "221975a/assisted-handwriting-recognition"
 
-# Use CPU initially for reliable compatibility
 DEVICE = torch.device("cpu")
 
 
@@ -61,32 +59,51 @@ def load_model():
 
 def recognise_handwriting(image):
 
-    # Load model and processor
     processor, model = load_model()
 
-    # Ensure image is RGB
     image = image.convert("RGB")
 
-    # Process handwriting image
     pixel_values = processor(
         images=image,
         return_tensors="pt"
     ).pixel_values.to(DEVICE)
 
-    # Generate handwritten text prediction
     with torch.inference_mode():
 
-        generated_ids = model.generate(
+        outputs = model.generate(
             pixel_values,
-            max_new_tokens=128
+            max_new_tokens=128,
+            return_dict_in_generate=True,
+            output_scores=True
         )
 
-    # Convert model output into readable text
+    generated_ids = outputs.sequences
+
     recognised_text = processor.batch_decode(
         generated_ids,
         skip_special_tokens=True
-    )[0]
+    )[0].strip()
 
-    return recognised_text.strip()
+    # Estimate average generated-token confidence
+    if outputs.scores:
+        token_confidences = []
 
+        for step, scores in enumerate(outputs.scores):
 
+            token_id = generated_ids[0, step + 1]
+
+            probabilities = torch.softmax(scores[0], dim=-1)
+
+            confidence = probabilities[token_id].item()
+
+            token_confidences.append(confidence)
+
+        average_confidence = (
+            sum(token_confidences) / len(token_confidences)
+            if token_confidences else 0.0
+        )
+
+    else:
+        average_confidence = 0.0
+
+    return recognised_text, average_confidence
