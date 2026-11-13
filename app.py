@@ -45,7 +45,7 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Remove top whitespace from main page */
+    /* Remove unwanted top spacing */
     [data-testid="stAppViewContainer"] {
         padding-top: 0 !important;
         margin-top: 0 !important;
@@ -112,18 +112,24 @@ if image_path.exists():
 
         .hero-section {{
 
+            /* Background photograph */
             background-image:
                 linear-gradient(
                     90deg,
                     rgba(250, 247, 242, 0.96) 0%,
-                    rgba(250, 247, 242, 0.88) 43%,
+                    rgba(250, 247, 242, 0.88) 35%,
                     rgba(250, 247, 242, 0.05) 75%
                 ),
                 url("data:image/png;base64,{hero_image}");
 
-            background-size: cover;
+            /*
+            Show the complete photograph without cropping.
+            The image may stretch slightly to fit the screen.
+            */
+            background-size: 100% 100%;
             background-position: center center;
             background-repeat: no-repeat;
+            background-color: #FAF7F2;
 
             /* Full browser width */
             width: 100vw;
@@ -131,7 +137,8 @@ if image_path.exists():
             margin-top: 0;
 
             /* Full browser height */
-            min-height: 100vh;
+            height: 100vh;
+            min-height: 650px;
 
             padding: 65px 10%;
 
@@ -143,6 +150,7 @@ if image_path.exists():
             border-radius: 0;
         }}
 
+        /* Main title */
         .hero-title {{
             color: #174C5A;
             font-family: Georgia, serif;
@@ -151,12 +159,14 @@ if image_path.exists():
             margin-bottom: 12px;
         }}
 
+        /* Subtitle */
         .hero-subtitle {{
             color: #405966;
             font-size: 23px;
             margin-bottom: 22px;
         }}
 
+        /* Decorative divider */
         .hero-divider {{
             width: 90px;
             height: 2px;
@@ -164,6 +174,7 @@ if image_path.exists():
             margin-bottom: 28px;
         }}
 
+        /* Description */
         .hero-description {{
             color: #263238;
             font-size: 18px;
@@ -175,9 +186,10 @@ if image_path.exists():
         @media (max-width: 768px) {{
 
             .hero-section {{
-                min-height: 100vh;
+                min-height: 650px;
+                height: 100vh;
                 padding: 35px 7%;
-                background-position: 60% center;
+                background-position: center center;
             }}
 
             .hero-title {{
