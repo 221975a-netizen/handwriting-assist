@@ -110,7 +110,6 @@ if image_path.exists():
 
         .hero-section {{
 
-            /* Background photograph */
             background-image:
                 linear-gradient(
                     90deg,
@@ -120,12 +119,9 @@ if image_path.exists():
                 ),
                 url("data:image/png;base64,{hero_image}");
 
-            /*
-            Preserve original image proportions.
-            Shift the image left to reveal more of the hand and pen.
-            */
+            /* Preserve image proportions and shift photograph left */
             background-size: cover;
-            background-position: 70% center;
+            background-position: right center;
             background-repeat: no-repeat;
             background-color: #FAF7F2;
 
@@ -187,7 +183,7 @@ if image_path.exists():
                 min-height: 650px;
                 height: 100vh;
                 padding: 35px 7%;
-                background-position: 70% center;
+                background-position: right center;
             }}
 
             .hero-title {{
