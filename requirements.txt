@@ -1,4 +1,5 @@
 streamlit
+streamlit-cropper
 torch
 transformers==4.57.1
 pillow
