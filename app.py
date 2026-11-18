@@ -1,9 +1,11 @@
 
 import base64
+import hashlib
 from pathlib import Path
 
 import streamlit as st
 from PIL import Image
+from streamlit_cropper import st_cropper
 
 from recognizer import recognise_handwriting
 
@@ -20,6 +22,24 @@ st.set_page_config(
 
 
 # --------------------------------------------------
+# SESSION STATE RESET FUNCTION
+# --------------------------------------------------
+
+def clear_recognition_results():
+    """Clear previous recognition results."""
+
+    keys_to_clear = [
+        "recognised_text",
+        "average_confidence",
+        "recognition_image",
+        "editable_transcription"
+    ]
+
+    for key in keys_to_clear:
+        st.session_state.pop(key, None)
+
+
+# --------------------------------------------------
 # CUSTOM STYLING
 # --------------------------------------------------
 
@@ -32,7 +52,7 @@ st.markdown("""
         padding: 0;
     }
 
-    /* Hide Streamlit header and Deploy bar */
+    /* Hide Streamlit header */
     header[data-testid="stHeader"] {
         display: none !important;
         height: 0 !important;
@@ -119,18 +139,16 @@ if image_path.exists():
                 ),
                 url("data:image/png;base64,{hero_image}");
 
-            /* Preserve image proportions and shift photograph left */
+            /* Preserve proportions and shift photograph left */
             background-size: cover;
             background-position: right center;
             background-repeat: no-repeat;
             background-color: #FAF7F2;
 
-            /* Full browser width */
             width: 100vw;
             margin-left: calc(50% - 50vw);
             margin-top: 0;
 
-            /* Full browser height */
             height: 100vh;
             min-height: 650px;
 
@@ -144,7 +162,6 @@ if image_path.exists():
             border-radius: 0;
         }}
 
-        /* Main title */
         .hero-title {{
             color: #174C5A;
             font-family: Georgia, serif;
@@ -153,14 +170,12 @@ if image_path.exists():
             margin-bottom: 12px;
         }}
 
-        /* Subtitle */
         .hero-subtitle {{
             color: #405966;
             font-size: 23px;
             margin-bottom: 22px;
         }}
 
-        /* Decorative divider */
         .hero-divider {{
             width: 90px;
             height: 2px;
@@ -168,7 +183,6 @@ if image_path.exists():
             margin-bottom: 28px;
         }}
 
-        /* Description */
         .hero-description {{
             color: #263238;
             font-size: 18px;
@@ -176,7 +190,6 @@ if image_path.exists():
             max-width: 570px;
         }}
 
-        /* Mobile layout */
         @media (max-width: 768px) {{
 
             .hero-section {{
@@ -259,21 +272,112 @@ st.header("Upload Handwriting")
 
 uploaded_file = st.file_uploader(
     "Choose a handwriting image",
-    type=["png", "jpg", "jpeg"]
+    type=["png", "jpg", "jpeg"],
+    key="handwriting_uploader"
 )
+
+
+# --------------------------------------------------
+# DETECT NEW IMAGE AND CLEAR OLD RESULTS
+# --------------------------------------------------
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    uploaded_bytes = uploaded_file.getvalue()
+
+    current_image_hash = hashlib.sha256(
+        uploaded_bytes
+    ).hexdigest()
+
+    previous_image_hash = st.session_state.get(
+        "previous_image_hash"
+    )
+
+    if current_image_hash != previous_image_hash:
+
+        clear_recognition_results()
+
+        st.session_state["previous_image_hash"] = (
+            current_image_hash
+        )
+
+        st.session_state.pop("previous_crop_hash", None)
+
+
+    original_image = Image.open(uploaded_file).convert("RGB")
 
     st.success("Image uploaded successfully!")
 
+
+    # --------------------------------------------------
+    # CROP IMAGE
+    # --------------------------------------------------
+
     st.markdown("---")
+
+    st.header("Crop Handwriting")
+
+    st.write(
+        "Adjust the crop box to select the part of the image "
+        "containing the handwriting you want the AI to recognise."
+    )
+
+    cropped_image = st_cropper(
+        original_image,
+        realtime_update=True,
+        box_color="#438A85",
+        aspect_ratio=None,
+        return_type="image"
+    )
+
+    if cropped_image is None:
+        cropped_image = original_image
+
+    cropped_image = cropped_image.convert("RGB")
+
+    st.caption(
+        "Drag and resize the crop box to select the handwriting."
+    )
+
+
+    # --------------------------------------------------
+    # DETECT CHANGES TO THE CROPPED IMAGE
+    # --------------------------------------------------
+
+    current_crop_hash = hashlib.sha256(
+        cropped_image.tobytes()
+    ).hexdigest()
+
+    previous_crop_hash = st.session_state.get(
+        "previous_crop_hash"
+    )
+
+    if current_crop_hash != previous_crop_hash:
+
+        clear_recognition_results()
+
+        st.session_state["previous_crop_hash"] = (
+            current_crop_hash
+        )
+
+
+    # --------------------------------------------------
+    # CROPPED IMAGE PREVIEW
+    # --------------------------------------------------
+
+    st.subheader("Selected Image")
+
+    st.image(
+        cropped_image,
+        use_container_width=True
+    )
 
 
     # --------------------------------------------------
     # RECOGNITION
     # --------------------------------------------------
+
+    st.markdown("---")
 
     if st.button(
         "Recognise Handwriting",
@@ -287,16 +391,20 @@ if uploaded_file is not None:
             try:
 
                 recognised_text, average_confidence = (
-                    recognise_handwriting(image)
+                    recognise_handwriting(cropped_image)
                 )
 
-                st.session_state["recognised_text"] = recognised_text
+                st.session_state["recognised_text"] = (
+                    recognised_text
+                )
 
                 st.session_state["average_confidence"] = (
                     average_confidence
                 )
 
-                st.session_state["recognition_image"] = image
+                st.session_state["recognition_image"] = (
+                    cropped_image.copy()
+                )
 
             except Exception as e:
 
@@ -319,7 +427,7 @@ if uploaded_file is not None:
 
         with col1:
 
-            st.subheader("Original Handwriting")
+            st.subheader("Selected Handwriting")
 
             st.image(
                 st.session_state["recognition_image"],
@@ -405,6 +513,20 @@ if uploaded_file is not None:
             st.info(
                 "A confidence estimate is not available for this result."
             )
+
+
+# --------------------------------------------------
+# CLEAR UPLOAD STATE WHEN NO IMAGE IS SELECTED
+# --------------------------------------------------
+
+else:
+
+    if st.session_state.get("previous_image_hash") is not None:
+
+        clear_recognition_results()
+
+        st.session_state.pop("previous_image_hash", None)
+        st.session_state.pop("previous_crop_hash", None)
 
 
 # --------------------------------------------------
